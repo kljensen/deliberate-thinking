@@ -32,6 +32,18 @@ You can find instructions for your assistants at these links:
 - [OpenAI Codex MCP instructions](https://github.com/openai/codex/blob/main/docs/advanced.md#model-context-protocol-mcp)
 - [GitHub Copilot MCP instructions](https://docs.github.com/en/copilot/how-tos/provide-context/use-mcp/extend-copilot-chat-with-mcp)
 
+For Claude Code, I often have a `.mcp.json` file in my working directory with the following content.
+
+```json
+{
+  "mcpServers": {
+    "deliberate-thinking": {
+      "command": "/your/path/to/deliberate-thinking-server",
+      "args": []
+    }
+}
+```
+
 ## License
 
 The [Unlicense](https://unlicense.org/).
