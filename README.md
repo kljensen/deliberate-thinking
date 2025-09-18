@@ -41,6 +41,7 @@ For Claude Code, I often have a `.mcp.json` file in my working directory with th
       "command": "/your/path/to/deliberate-thinking-server",
       "args": []
     }
+  }
 }
 ```
 
