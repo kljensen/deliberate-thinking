@@ -1,105 +1,37 @@
-# Deliberate Thinking MCP Server (Rust)
+# Deliberate Thinking MCP Server
 
-A Rust implementation of the Deliberate Thinking MCP server that matches the functionality of the TypeScript version. This server provides a structured approach to problem-solving through dynamic and reflective thinking processes.
+A structured thinking [Model Context Protocol](https://modelcontextprotocol.io/docs/getting-started/intro)
+tool for AI assistants that breaks down complex problems into sequential,
+revisable thoughts.
 
-## Features
+## Notes
 
-- **Dynamic Thinking Process**: Break down complex problems into manageable sequential steps
-- **Thought Revision**: Revise and refine previous thoughts as understanding deepens
-- **Branching Logic**: Explore alternative reasoning paths through thought branches
-- **State Management**: Track thought history, branches, and progression
-- **Parameter Validation**: Comprehensive input validation with proper error handling
-- **JSON Response Format**: Compatible response format matching TypeScript implementation
+* This is based on the [Sequential Thinking](https://github.com/modelcontextprotocol/servers/tree/main/src/sequentialthinking)
+MCP
+* The project goal is merely to be useful to _me_ and _my_ work. It's
+  easy to fork for your work.
+* This is written in Rust merely for low-latency start-up times
+  and for fun.
 
-## Tool Parameters
 
-The `deliberatethinking` tool accepts the following parameters:
+## Quick Start
 
-### Required Parameters
-- `thought` (string): Current thinking step content
-- `nextThoughtNeeded` (boolean): Whether another thought step is needed
-- `thoughtNumber` (u32): Current thought number (minimum 1)
-- `totalThoughts` (u32): Estimated total thoughts needed (minimum 1)
+### Install
 
-### Optional Parameters
-- `isRevision` (boolean): Whether this revises previous thinking
-- `revisesThought` (u32): Which thought number is being reconsidered
-- `branchFromThought` (u32): Branching point thought number
-- `branchId` (string): Branch identifier
-- `needsMoreThoughts` (boolean): If more thoughts are needed
-
-## Response Format
-
-```json
-{
-  "thoughtNumber": number,
-  "totalThoughts": number,
-  "nextThoughtNeeded": boolean,
-  "branches": array,
-  "thoughtHistoryLength": number
-}
-```
-
-## Building and Running
-
-### Prerequisites
-- Rust 1.70 or higher
-- Cargo
-
-### Build
 ```bash
+# Clone the repository
+git clone https://github.com/kljensen/deliberate-thinking.git
+cd deliberate-thinking
 cargo build --release
 ```
 
-### Run
-```bash
-cargo run
-```
+### Adding deliberate thinking to your AI assistant
 
-Or run the binary directly:
-```bash
-./target/debug/deliberate-thinking-server
-```
+You can find instructions for your assistants at these links:
+- [Claude Code MCP instructions](https://docs.claude.com/en/docs/claude-code/mcp)
+- [OpenAI Codex MCP instructions](https://github.com/openai/codex/blob/main/docs/advanced.md#model-context-protocol-mcp)
+- [GitHub Copilot MCP instructions](https://docs.github.com/en/copilot/how-tos/provide-context/use-mcp/extend-copilot-chat-with-mcp)
 
-## Claude Desktop Integration
+## License
 
-Add to your Claude Desktop configuration:
-
-```json
-{
-  "mcpServers": {
-    "deliberate-thinking-rust": {
-      "command": "/path/to/deliberate-thinking-rust/target/debug/deliberate-thinking-server",
-      "args": []
-    }
-  }
-}
-```
-
-## Architecture
-
-- **Server Handler**: Implements the MCP `ServerHandler` trait
-- **Tool Router**: Uses `#[tool_router]` macro for automatic tool registration
-- **State Management**: Thread-safe state management with `Arc<Mutex<>>`
-- **Transport**: Uses stdio transport for communication
-- **Validation**: Input validation with proper MCP error responses
-
-## Implementation Details
-
-- Built with the official `rmcp` crate (v0.6.4)
-- Async/await throughout using tokio runtime
-- Comprehensive error handling with proper MCP error codes
-- Memory-safe state management
-- Efficient branching and revision handling
-
-## Usage Example
-
-The deliberate thinking tool helps break down complex problems:
-
-1. **Initial Thought**: Start with thought #1, set total thoughts estimate
-2. **Progressive Thinking**: Continue with subsequent thoughts
-3. **Revision**: Revise previous thoughts by setting `isRevision: true` and `revisesThought`
-4. **Branching**: Create alternative reasoning paths with `branchFromThought` and `branchId`
-5. **Dynamic Adjustment**: Adjust `totalThoughts` as understanding evolves
-
-This implementation provides a practical, working solution that efficiently handles structured thinking processes for AI assistants.
+The [Unlicense](https://unlicense.org/).
