@@ -4,12 +4,15 @@ use tokio::sync::Mutex;
 
 use rmcp::{
     handler::server::{router::tool::ToolRouter, wrapper::Parameters, ServerHandler},
-    model::{ErrorData as McpError, *},
+    model::{
+        CallToolResult, Content, ErrorCode, ErrorData as McpError, Implementation,
+        InitializeResult, ProtocolVersion, ServerCapabilities, ToolsCapability,
+    },
     schemars, tool, tool_handler, tool_router,
-    transport::stdio, ServiceExt,
+    transport::stdio,
+    ServiceExt,
 };
 use serde::{Deserialize, Serialize};
-use serde_json;
 
 /// Deliberate thinking request parameters
 #[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
@@ -124,9 +127,9 @@ impl From<DeliberateThinkingRequest> for ThoughtData {
 /// Deliberate thinking server state
 #[derive(Debug, Default)]
 pub struct DeliberateThinkingState {
-    pub thought_history: Vec<ThoughtData>,
-    pub branches: HashMap<String, Vec<ThoughtData>>,
-    pub current_branch: Option<String>,
+    thought_history: Vec<ThoughtData>,
+    branches: HashMap<String, Vec<ThoughtData>>,
+    current_branch: Option<String>,
 }
 
 impl DeliberateThinkingState {
@@ -143,7 +146,11 @@ impl DeliberateThinkingState {
 
     /// Gets the current thought history length
     fn get_history_length(&self) -> u32 {
-        self.get_current_history().len() as u32
+        // Safe cast: thought history is bounded by practical memory limits
+        // and will never exceed u32::MAX in realistic usage
+        #[allow(clippy::cast_possible_truncation)]
+        let length = self.get_current_history().len() as u32;
+        length
     }
 
     /// Handles branching logic
@@ -227,6 +234,7 @@ pub struct DeliberateThinkingServer {
 }
 
 impl DeliberateThinkingServer {
+    #[must_use]
     pub fn new() -> Self {
         Self {
             state: Arc::new(Mutex::new(DeliberateThinkingState::default())),
@@ -401,4 +409,124 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     service.waiting().await?;
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_validate_rejects_invalid_thought_number() {
+        let request = DeliberateThinkingRequest {
+            thought: "test".to_string(),
+            next_thought_needed: true,
+            thought_number: 0, // Invalid: must be >= 1
+            total_thoughts: 5,
+            is_revision: None,
+            revises_thought: None,
+            branch_from_thought: None,
+            branch_id: None,
+            needs_more_thoughts: None,
+        };
+
+        let result = request.validate();
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_validate_rejects_invalid_total_thoughts() {
+        let request = DeliberateThinkingRequest {
+            thought: "test".to_string(),
+            next_thought_needed: true,
+            thought_number: 1,
+            total_thoughts: 0, // Invalid: must be >= 1
+            is_revision: None,
+            revises_thought: None,
+            branch_from_thought: None,
+            branch_id: None,
+            needs_more_thoughts: None,
+        };
+
+        let result = request.validate();
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_add_thought_to_state() {
+        let mut state = DeliberateThinkingState::default();
+
+        let thought_data = ThoughtData {
+            thought: "First thought".to_string(),
+            thought_number: 1,
+            total_thoughts: 3,
+            next_thought_needed: true,
+            is_revision: None,
+            revises_thought: None,
+            branch_from_thought: None,
+            branch_id: None,
+            needs_more_thoughts: None,
+        };
+
+        state.add_thought(thought_data);
+
+        assert_eq!(state.get_history_length(), 1);
+        assert_eq!(state.get_current_history()[0].thought, "First thought");
+    }
+
+    #[test]
+    fn test_branching_creates_new_branch() {
+        let mut state = DeliberateThinkingState::default();
+
+        // Add base thought
+        let base_thought = ThoughtData {
+            thought: "Base thought".to_string(),
+            thought_number: 1,
+            total_thoughts: 3,
+            next_thought_needed: true,
+            is_revision: None,
+            revises_thought: None,
+            branch_from_thought: None,
+            branch_id: None,
+            needs_more_thoughts: None,
+        };
+        state.add_thought(base_thought);
+
+        // Create branch
+        let branch_thought = ThoughtData {
+            thought: "Branch thought".to_string(),
+            thought_number: 2,
+            total_thoughts: 3,
+            next_thought_needed: true,
+            is_revision: None,
+            revises_thought: None,
+            branch_from_thought: Some(1),
+            branch_id: Some("alt-path".to_string()),
+            needs_more_thoughts: None,
+        };
+
+        state.handle_branching(1, "alt-path".to_string(), branch_thought);
+
+        let branch_names = state.get_branch_names();
+        assert_eq!(branch_names.len(), 1);
+        assert!(branch_names.contains(&"alt-path".to_string()));
+        assert_eq!(state.current_branch, Some("alt-path".to_string()));
+    }
+
+    #[test]
+    fn test_validate_accepts_valid_request() {
+        let request = DeliberateThinkingRequest {
+            thought: "Valid thought".to_string(),
+            next_thought_needed: true,
+            thought_number: 1,
+            total_thoughts: 5,
+            is_revision: None,
+            revises_thought: None,
+            branch_from_thought: None,
+            branch_id: None,
+            needs_more_thoughts: None,
+        };
+
+        let result = request.validate();
+        assert!(result.is_ok());
+    }
 }
