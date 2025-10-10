@@ -1,3 +1,18 @@
+//! Deliberate Thinking MCP Server
+//!
+//! A Model Context Protocol (MCP) server that enables dynamic and reflective problem-solving
+//! through a structured thinking process. This server provides a tool for breaking down complex
+//! problems into manageable thoughts that can be revised, branched, and evolved as understanding
+//! deepens.
+//!
+//! ## Architecture
+//!
+//! - **DeliberateThinkingServer**: Main server implementation handling MCP protocol
+//! - **DeliberateThinkingState**: Manages thought history, branching, and revisions
+//! - **DeliberateThinkingRequest**: Input parameters for each thinking step
+//! - **DeliberateThinkingResponse**: Response tracking thought progress and state
+//! - **ThoughtData**: Internal representation of a single thought with metadata
+
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::Mutex;
@@ -13,6 +28,13 @@ use rmcp::{
     ServiceExt,
 };
 use serde::{Deserialize, Serialize};
+
+// JSON-RPC 2.0 error codes
+// See: https://www.jsonrpc.org/specification#error_object
+/// Invalid method parameter(s)
+const JSONRPC_INVALID_PARAMS: i32 = -32602;
+/// Internal JSON-RPC error
+const JSONRPC_INTERNAL_ERROR: i32 = -32603;
 
 /// Deliberate thinking request parameters
 #[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
@@ -263,7 +285,7 @@ fn validate_min_value(field_name: &str, value: u32, min: u32) -> Result<(), McpE
 /// Helper function to create validation errors
 fn create_validation_error(message: &str) -> McpError {
     McpError {
-        code: ErrorCode(-32602),
+        code: ErrorCode(JSONRPC_INVALID_PARAMS),
         message: message.to_string().into(),
         data: None,
     }
@@ -272,7 +294,7 @@ fn create_validation_error(message: &str) -> McpError {
 /// Helper function to create serialization errors
 fn create_serialization_error(error: impl std::fmt::Display) -> McpError {
     McpError {
-        code: ErrorCode(-32603),
+        code: ErrorCode(JSONRPC_INTERNAL_ERROR),
         message: format!("Failed to serialize response: {}", error).into(),
         data: None,
     }
@@ -320,19 +342,15 @@ Key features:
         let mut state = self.state.lock().await;
 
         // Process the thought based on its type
-        match (&request.branch_from_thought, &request.branch_id, &request.revises_thought) {
-            // Branching case
-            (Some(branch_from), Some(branch_id), _) => {
-                state.handle_branching(*branch_from, branch_id.clone(), thought_data);
-            }
-            // Revision case
-            (_, _, Some(revises)) => {
-                state.handle_revision(*revises, thought_data);
-            }
-            // Regular thought case
-            _ => {
-                state.add_thought(thought_data);
-            }
+        if let (Some(branch_from), Some(branch_id)) = (request.branch_from_thought, &request.branch_id) {
+            // Branching case: create or add to a branch
+            state.handle_branching(branch_from, branch_id.clone(), thought_data);
+        } else if let Some(revises) = request.revises_thought {
+            // Revision case: update an existing thought
+            state.handle_revision(revises, thought_data);
+        } else {
+            // Regular thought case: add to current history
+            state.add_thought(thought_data);
         }
 
         // Create response
