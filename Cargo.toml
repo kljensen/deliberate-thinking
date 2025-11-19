@@ -2,6 +2,9 @@
 name = "deliberate-thinking-rust"
 version = "0.1.0"
 edition = "2021"
+repository = "https://github.com/kljensen/deliberate-thinking"
+license = "MIT"
+description = "MCP server for deliberate thinking"
 
 [dependencies]
 rmcp = { version = "0.6.4", features = ["server", "transport-io"] }
@@ -15,3 +18,8 @@ env_logger = "0.11"
 [[bin]]
 name = "deliberate-thinking-server"
 path = "src/main.rs"
+
+# The profile that 'dist' will build with
+[profile.dist]
+inherits = "release"
+lto = "thin"

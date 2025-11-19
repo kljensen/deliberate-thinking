@@ -18,8 +18,18 @@ MCP
 
 ### Install
 
+**From GitHub Releases (recommended):**
+
+Download the latest binary for your platform from the [releases page](https://github.com/kljensen/deliberate-thinking/releases).
+
+Available platforms:
+- macOS (Intel and Apple Silicon)
+- Linux (x86_64 and ARM64)
+- Windows (x86_64)
+
+**From source:**
+
 ```bash
-# Clone the repository
 git clone https://github.com/kljensen/deliberate-thinking.git
 cd deliberate-thinking
 cargo build --release
